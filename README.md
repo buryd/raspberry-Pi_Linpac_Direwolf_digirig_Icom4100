@@ -4,6 +4,8 @@ Keyboard-to-keyboard packet radio (AX.25 connected chat) using a DigiRig as the 
 
 This repository is **public**. Anyone can open the GitHub link below without logging in.
 
+**Run the installer over SSH as a normal (non-root) user:** [SSH-INSTALL.md](./SSH-INSTALL.md)
+
 **Word document:** [Linpac_DigiRig_ID-4100_Raspberry_Pi_Procedure.docx](./Linpac_DigiRig_ID-4100_Raspberry_Pi_Procedure.docx)
 
 You need a valid amateur radio license and must identify as required in your country.
