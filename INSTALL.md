@@ -80,7 +80,17 @@ Both stations must be on the **same frequency**, **FM**, **simplex**, and the sa
 
 ## 3. Raspberry Pi OS
 
+The fastest path over SSH is the installer script (builds Direwolf and Linpac, writes configs). From the Pi:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/buryd/raspberry-Pi_Linpac_Direwolf_digirig_Icom4100/main/install-linpac-packet.sh -o install-linpac-packet.sh
+chmod +x install-linpac-packet.sh
+./install-linpac-packet.sh --callsign YOURCALL
+```
+
 Use current **Raspberry Pi OS** (Bookworm or later). 64-bit is fine if kernel and userland are both 64-bit. Do not mix a 64-bit kernel with 32-bit userland.
+
+If you prefer to install by hand:
 
 ```bash
 sudo apt update

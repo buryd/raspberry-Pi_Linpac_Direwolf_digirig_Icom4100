@@ -10,6 +10,36 @@ You need a valid amateur radio license and must identify as required in your cou
 
 Do **not** run the whole install as root. Stay logged in as a normal Pi user and use `sudo` only for package install, `make install`, editing `/etc/ax25/axports`, and `kissattach`. Run `direwolf` and `linpac` as your normal user so configs land in your home directory.
 
+## Install over SSH
+
+On the Raspberry Pi (replace `YOURCALL` and the Pi address):
+
+```bash
+ssh -t USER@PI_ADDRESS
+curl -fsSL https://raw.githubusercontent.com/buryd/raspberry-Pi_Linpac_Direwolf_digirig_Icom4100/main/install-linpac-packet.sh -o install-linpac-packet.sh
+chmod +x install-linpac-packet.sh
+./install-linpac-packet.sh --callsign YOURCALL
+```
+
+One-shot from your PC if the Pi user has passwordless `sudo`:
+
+```bash
+ssh -t USER@PI_ADDRESS 'curl -fsSL https://raw.githubusercontent.com/buryd/raspberry-Pi_Linpac_Direwolf_digirig_Icom4100/main/install-linpac-packet.sh | bash -s -- --callsign YOURCALL'
+```
+
+`ssh -t` allocates a terminal so `sudo` can ask for a password and so Linpac can use the full screen later.
+
+The installer builds Direwolf and Linpac from source (several minutes), writes `~/direwolf.conf` and `/etc/ax25/axports`, and adds you to the `dialout` and `audio` groups. It does **not** start the radio stack. After it finishes, **disconnect SSH and log back in**, then:
+
+```bash
+./start-packet.sh          # or ~/start-packet.sh
+# in a second SSH session:
+ssh -t USER@PI_ADDRESS
+linpac
+```
+
+Stop with `./stop-packet.sh`.
+
 ## How the pieces fit together
 
 ```
