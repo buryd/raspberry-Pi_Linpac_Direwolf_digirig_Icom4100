@@ -1,67 +1,31 @@
-# Linpac + DigiRig + Icom ID-4100 on a Raspberry Pi
+# Linpac + SignaLink USB + Icom ID-4100 on a Raspberry Pi
 
-Keyboard-to-keyboard packet radio (AX.25 connected chat) using a DigiRig as the soundcard TNC and an Icom ID-4100 as the analog FM radio.
+Keyboard-to-keyboard packet radio (AX.25 connected chat) using a **Tigertronics SignaLink USB** as the soundcard interface and an Icom ID-4100 as the analog FM radio.
 
-This repository is **public**. Anyone can open the GitHub link below without logging in.
+This is the SignaLink variant of the DigiRig procedure. Software (Direwolf, AX.25, Linpac) is the same. PTT is **VOX on the SignaLink**, not serial RTS.
 
-**Run the installer over SSH as a normal (non-root) user:** [SSH-INSTALL.md](./SSH-INSTALL.md)
-
-**SignaLink USB instead of DigiRig:** [INSTALL-SIGNALINK.md](./INSTALL-SIGNALINK.md)
-
-**Word document:** [Linpac_DigiRig_ID-4100_Raspberry_Pi_Procedure.docx](./Linpac_DigiRig_ID-4100_Raspberry_Pi_Procedure.docx)
+The DigiRig procedure remains in [INSTALL.md](./INSTALL.md).
 
 You need a valid amateur radio license and must identify as required in your country.
-
-Do **not** run the whole install as root. Stay logged in as a normal Pi user and use `sudo` only for package install, `make install`, editing `/etc/ax25/axports`, and `kissattach`. Run `direwolf` and `linpac` as your normal user so configs land in your home directory.
-
-## Install over SSH
-
-On the Raspberry Pi (replace `YOURCALL` and the Pi address):
-
-```bash
-ssh -t USER@PI_ADDRESS
-curl -fsSL https://raw.githubusercontent.com/buryd/raspberry-Pi_Linpac_Direwolf_digirig_Icom4100/main/install-linpac-packet.sh -o install-linpac-packet.sh
-chmod +x install-linpac-packet.sh
-./install-linpac-packet.sh --callsign YOURCALL
-```
-
-One-shot from your PC if the Pi user has passwordless `sudo`:
-
-```bash
-ssh -t USER@PI_ADDRESS 'curl -fsSL https://raw.githubusercontent.com/buryd/raspberry-Pi_Linpac_Direwolf_digirig_Icom4100/main/install-linpac-packet.sh | bash -s -- --callsign YOURCALL'
-```
-
-`ssh -t` allocates a terminal so `sudo` can ask for a password and so Linpac can use the full screen later.
-
-The installer builds Direwolf and Linpac from source (several minutes), writes `~/direwolf.conf` and `/etc/ax25/axports`, and adds you to the `dialout` and `audio` groups. It does **not** start the radio stack. After it finishes, **disconnect SSH and log back in**, then:
-
-```bash
-./start-packet.sh          # or ~/start-packet.sh
-# in a second SSH session:
-ssh -t USER@PI_ADDRESS
-linpac
-```
-
-Stop with `./stop-packet.sh`.
 
 ## How the pieces fit together
 
 ```
 Keyboard  →  Linpac  →  Linux AX.25  →  Direwolf (software TNC)
                                               ↓
-                                    DigiRig USB sound + RTS PTT
+                         SignaLink USB (sound card + VOX PTT)
                                               ↓
                               Icom ID-4100 analog FM (not D-STAR)
                                               ↓
                                     RF to the other station
 ```
 
-Linpac is only a terminal. It does not talk to the DigiRig by itself. Direwolf turns the DigiRig into a 1200-baud AFSK modem. Linux AX.25 is the packet protocol stack Linpac uses.
+Linpac is only a terminal. It does not talk to the SignaLink by itself. Direwolf turns the SignaLink into a 1200-baud AFSK modem. The SignaLink keys the radio with its internal VOX circuit (DELAY knob). Linux AX.25 is the packet protocol stack Linpac uses.
 
 | Software | Role |
 |---|---|
 | Raspberry Pi OS | Host OS |
-| `alsa-utils` | Identify and set DigiRig audio levels |
+| `alsa-utils` | Identify the SignaLink USB audio device |
 | Direwolf | Software TNC / 1200-baud AFSK modem |
 | `libax25`, `ax25-tools`, `ax25-apps` | Kernel AX.25 stack, `kissattach`, `axcall`, `axlisten` |
 | Linpac | Keyboard-to-keyboard packet terminal |
@@ -69,33 +33,52 @@ Linpac is only a terminal. It does not talk to the DigiRig by itself. Direwolf t
 
 Do **not** use D-STAR (DV), VARA, or Winlink for this procedure. Those are different modes. Linpac is analog 1200-baud AX.25 packet on FM.
 
+**SignaLink vs DigiRig**
+
+| | DigiRig Mobile | SignaLink USB |
+|---|---|---|
+| USB audio | Yes | Yes |
+| PTT | Serial **RTS** (`/dev/ttyUSB0`) | **VOX** (DELAY knob); no COM port in stock form |
+| `direwolf.conf` | `PTT /dev/ttyUSB0 RTS` | **No `PTT` line** |
+| Level control | `alsamixer` | SignaLink **TX / RX / DELAY** knobs, plus `alsamixer` if needed |
+
 ---
 
 ## 1. Hardware
 
 - Raspberry Pi 3B+, 4, or 5 with power supply, HDMI or SSH, and keyboard
-- DigiRig **Mobile** (recommended: Silicon Labs CP210x serial port for RTS PTT)
-- DigiRig **ICOM RJ-45 cable** (front mic + rear speaker)
-- USB-C cable: DigiRig to Pi
+- **Tigertronics SignaLink USB**
+- SignaLink **Icom RJ-45 radio cable** (front mic + speaker pigtail, as supplied for Icom mobiles)
+- USB-A to USB-B cable (SignaLink to Pi)
 - Icom **ID-4100A / ID-4100E**
 - Antenna and radio power
+- Jumper module that came with the Icom SignaLink cable (install it in the SignaLink per the Tigertronics sheet for that cable)
 
-If you have a **DigiRig Lite** (no COM port), PTT is VOX on the right audio channel. See the Lite note at the end of section 6.
+The ID-4100 does **not** have a standard 6-pin mini-DIN packet DATA jack. Use mic + speaker, not the small 2.5 mm rear DATA jack (that jack is for D-STAR cloning/GPS).
 
-### Cable connections (ID-4100 + DigiRig ICOM RJ-45)
+### Cable connections (ID-4100 + SignaLink USB)
 
 1. Unplug the hand mic from the front of the ID-4100.
-2. Plug the cable **RJ-45** into the front **mic jack**.
-3. Plug the cable **3.5 mm TRS** into the rear **speaker** jack (the larger jack). Leave the small 2.5 mm **DATA** jack empty. That DATA jack is for D-STAR cloning/GPS, not analog packet with this cable.
-4. Plug the 4-pin (TRRS) end into the DigiRig socket labeled **AUDIO**. Nothing goes into the DigiRig serial socket when using this Icom cable.
-5. USB-C from DigiRig to a Pi USB port.
-6. Power on the radio, then the Pi.
+2. Plug the SignaLink cable **RJ-45** into the front **mic jack**.
+3. Plug the cable’s **speaker** pigtail into the rear **speaker** jack (the larger jack). Leave the small 2.5 mm **DATA** jack empty.
+4. Plug the other RJ-45 into the **radio** jack on the SignaLink.
+5. Confirm the matching **jumper module** is seated inside the SignaLink (Icom RJ-45 pinout).
+6. USB from SignaLink to a Pi USB port.
+7. Power on the radio, then the Pi.
+
+### SignaLink knobs (starting points)
+
+| Knob | Start here | Notes |
+|---|---|---|
+| **TX** | 9–10 o’clock | Icom mic inputs are sensitive. Too high distorts packet. |
+| **RX** | 10–12 o’clock | Aim for Direwolf decode audio around 50, not 100. |
+| **DELAY** | 8–9 o’clock (short) | Packet needs a short hang time. Long DELAY holds PTT after each burst. |
 
 ---
 
 ## 2. ID-4100 radio settings
 
-Packet via DigiRig is **analog FM**, not D-STAR.
+Packet via SignaLink is **analog FM**, not D-STAR.
 
 | Setting | Value | How |
 |---|---|---|
@@ -108,7 +91,7 @@ Packet via DigiRig is **analog FM**, not D-STAR.
 | MIC Gain | **2** (default; later 1–3 if overdriven) | `[MENU]` → Function → MIC Gain |
 | PRIO / priority watch | **OFF** | `[QUICK]` → PRIO Watch OFF |
 | TX power | **LOW** at first | Front panel power |
-| Volume | About **50%** (10–12 o’clock) | `[VOL]` — this is the audio DigiRig hears |
+| Volume | About **50%** (10–12 o’clock) | `[VOL]` — this is the audio the SignaLink RX knob hears |
 | Squelch | Fully open (counterclockwise) | Direwolf has its own DCD; closed squelch can hide packet audio |
 | Frequency | Local 2 m packet simplex | `[V/M]` to VFO, then set frequency |
 
@@ -120,7 +103,21 @@ Both stations must be on the **same frequency**, **FM**, **simplex**, and the sa
 
 ## 3. Raspberry Pi OS
 
+The installer script still works for SignaLink (it installs Direwolf and Linpac). After it finishes you **must** edit `~/direwolf.conf` and remove the DigiRig RTS PTT line (see section 6).
+
+From the Pi, as a normal user (not root):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/buryd/raspberry-Pi_Linpac_Direwolf_digirig_Icom4100/main/install-linpac-packet.sh -o install-linpac-packet.sh
+chmod +x install-linpac-packet.sh
+./install-linpac-packet.sh --callsign YOURCALL
+```
+
+Non-root SSH steps: [SSH-INSTALL.md](./SSH-INSTALL.md).
+
 Use current **Raspberry Pi OS** (Bookworm or later). 64-bit is fine if kernel and userland are both 64-bit. Do not mix a 64-bit kernel with 32-bit userland.
+
+If you prefer to install by hand:
 
 ```bash
 sudo apt update
@@ -140,31 +137,33 @@ sudo apt install -y \
   socat
 ```
 
-Add your user to the serial and audio groups (replace `pi` if your username differs):
+Add your user to the **audio** group. `dialout` is optional on a stock SignaLink (no serial PTT):
 
 ```bash
-sudo usermod -aG dialout,audio $USER
+sudo usermod -aG audio $USER
 ```
 
 Log out and back in (or reboot) so group membership takes effect.
 
 ---
 
-## 4. Confirm the DigiRig on the Pi
+## 4. Confirm the SignaLink on the Pi
 
-Plug the DigiRig in, then:
+Plug the SignaLink in, then:
 
 ```bash
 lsusb
 aplay -l
 arecord -l
-ls -l /dev/serial/by-id
 ```
 
-You should see something like:
+You should see USB audio, for example:
 
-- USB audio: `C-Media` / `USB PnP Sound Device` / `Device`
-- Serial (Mobile only): `Silicon Labs CP210x` → `/dev/ttyUSB0`
+- `C-Media`
+- `USB PnP Sound Device`
+- `Device`
+
+A stock SignaLink USB does **not** create `/dev/ttyUSB0` for PTT. You can ignore `ls /dev/serial/by-id` unless you added a separate adapter.
 
 Note the **card number** from `aplay -l`. Example:
 
@@ -174,36 +173,30 @@ card 2: Device [USB PnP Sound Device], device 0: USB Audio [USB Audio]
 
 That card is `plughw:2,0` (or by name `plughw:Device,0`).
 
-Also note the serial path. Prefer the stable by-id name:
-
-```
-/dev/serial/by-id/usb-Silicon_Labs_CP2102N_USB_to_UART_Bridge_Controller_........-if00-port0
-```
-
-If you only have `/dev/ttyUSB0`, that is fine as long as nothing else is plugged in.
-
-Set levels (replace `2` with your card number):
+Set computer-side levels if needed (replace `2` with your card number). On SignaLink, **prefer the front-panel TX/RX knobs**; keep ALSA near 70–80% and not muted:
 
 ```bash
 alsamixer -c 2
 ```
 
-- F6 to select the DigiRig card
-- Playback (PCM / Speaker): start around **40–60%**
-- Capture (Mic): around **70%**, not muted
+- F6 to select the SignaLink card
+- Playback (PCM / Speaker): around **70–80%**, not muted
+- Capture (Mic): around **70–80%**, not muted
 - Disable Auto-Gain if it appears
 
-Icom mic inputs are sensitive. If the radio overdrives or PTT is flaky, **lower** playback, not raise it.
+Fine adjustment is the SignaLink **TX** and **RX** knobs, not maxing `alsamixer`.
 
 ---
 
 ## 5. Install Direwolf from source
 
-The distro package is often older. Build current Direwolf:
+The distro package is often older. Build current Direwolf. If `git clone` fails, remove a broken folder first (`rm -rf ~/src/direwolf` or `rm -rf ~/direwolf`) and see [SSH-INSTALL.md](./SSH-INSTALL.md) for the tarball fallback.
 
 ```bash
 cd ~
-git clone https://github.com/wb2osz/direwolf.git
+mkdir -p src
+cd src
+git clone --depth 1 https://github.com/wb2osz/direwolf.git
 cd direwolf
 mkdir build && cd build
 cmake ..
@@ -216,9 +209,9 @@ make install-conf
 
 ---
 
-## 6. Configure Direwolf
+## 6. Configure Direwolf for SignaLink (VOX)
 
-Edit `~/direwolf.conf`. Replace `YOURCALL`, the sound card, and the serial path.
+Edit `~/direwolf.conf`. Replace `YOURCALL` and the sound card. **Do not** add a serial `PTT` line.
 
 ```text
 ADEVICE  plughw:2,0
@@ -227,26 +220,30 @@ ACHANNELS 1
 CHANNEL 0
 MYCALL YOURCALL-1
 MODEM 1200
-PTT /dev/ttyUSB0 RTS
+# SignaLink USB keys the radio with VOX. Do not use RTS PTT.
+# PTT /dev/ttyUSB0 RTS
 
-# Timing for a mobile FM radio (values are 10 ms units)
+# Slightly longer lead-in/tail so VOX can key and unkey cleanly
+# (values are 10 ms units)
 DWAIT 0
-TXDELAY 30
-TXTAIL 10
+TXDELAY 40
+TXTAIL 20
 
 AGWPORT 8000
 KISSPORT 8001
 ```
 
+If the installer already wrote `PTT /dev/ttyUSB0 RTS`, comment it out or delete it:
+
+```bash
+nano ~/direwolf.conf
+```
+
 Notes:
 
-- `ADEVICE` must match the DigiRig card from `aplay -l`. Using the name is more stable: `ADEVICE plughw:Device,0`
-- DigiRig Mobile PTT is **RTS**, not DTR
+- `ADEVICE` must match the SignaLink card from `aplay -l`. Using the name is more stable: `ADEVICE plughw:Device,0`
 - `YOURCALL-1` is the on-air packet identity. Use a unique SSID on each radio if both ends share one callsign (example: `N0CALL-1` and `N0CALL-2`)
-
-### DigiRig Lite (no serial port)
-
-Omit the `PTT` line and let the Lite’s VOX circuit key the radio from the right audio channel, **or** keep levels conservative so VOX is reliable. Confirm the Lite LED keys when Direwolf transmits. If it never keys, the Lite may need the right-channel PTT path; in that case use DigiRig Mobile instead.
+- Leave `PBEACON` unused so you do not beacon APRS on a packet chat frequency
 
 Test Direwolf by itself (leave this terminal running):
 
@@ -256,9 +253,7 @@ direwolf -t 0
 
 `-t 0` turns off color (cleaner over SSH). You should see the sound card open and, when the radio hears packet or noise, an audio level meter. Tune a busy APRS channel (US: 144.390 FM) briefly to confirm **decode**. Then go back to your packet simplex frequency.
 
-PTT test: in another terminal, while Direwolf is running with default APRS beacon disabled, you can send a keyboard test later from Linpac. You can also watch the DigiRig PTT LED when a packet goes out.
-
-Comment out or leave `PBEACON` unused so you do not beacon APRS on a packet chat frequency.
+PTT test: watch the SignaLink **PTT LED** and the ID-4100 transmit indicator when a packet goes out. If the LED never lights, raise **TX** slightly and/or **DELAY** slightly.
 
 ---
 
@@ -327,7 +322,7 @@ linpac --help || true
 
 ## 9. Start the stack (order matters)
 
-Open **three** terminals (or use `tmux` / `screen`).
+Open **three** terminals (or use `tmux` / `screen`). Use `ssh -t` so Linpac’s screen works.
 
 ### Terminal 1 — Direwolf as a KISS TNC
 
@@ -360,7 +355,7 @@ Success looks like:
 AX.25 port radio bound to device ax0
 ```
 
-Optional monitor in this or another terminal:
+Optional monitor:
 
 ```bash
 sudo axlisten -a -c -t
@@ -388,6 +383,8 @@ If the wizard already ran and you need to redo it:
 rm -rf ~/LinPac
 linpac
 ```
+
+You can also use `~/start-packet.sh` and `~/stop-packet.sh` after the installer, as long as `~/direwolf.conf` has **no** RTS `PTT` line.
 
 ---
 
@@ -453,20 +450,19 @@ The other station will see UI frames in the monitor. Unproto is broadcast; conne
 axcall radio OTHERCALL-1
 ```
 
-If `axcall` connects, Direwolf, DigiRig, radio, and AX.25 are good; remaining issues are Linpac config.
+If `axcall` connects, Direwolf, SignaLink, radio, and AX.25 are good; remaining issues are Linpac config.
 
 ---
 
 ## 11. Optional start script
 
-Save as `~/start-packet.sh` and `chmod +x ~/start-packet.sh`.
+Same as the DigiRig procedure. Save as `~/start-packet.sh` and `chmod +x ~/start-packet.sh`.
 
 ```bash
 #!/bin/bash
 set -e
 cd "$HOME"
 
-# Start Direwolf in the background with KISS pty
 direwolf -t 0 -p > /tmp/direwolf.log 2>&1 &
 echo $! > /tmp/direwolf.pid
 sleep 3
@@ -494,21 +490,22 @@ kill "$(cat /tmp/direwolf.pid)" 2>/dev/null || true
 
 ## 12. Audio and PTT checkout
 
-1. Open squelch on the ID-4100. Direwolf’s underrun/level line should move.
+1. Open squelch on the ID-4100. Direwolf’s level line should move. Raise SignaLink **RX** or radio volume if it stays at zero.
 2. Brief decode test on 144.390 APRS (US) or a known local packet channel. You should see decoded frames.
 3. Return to your simplex chat frequency.
-4. From Linpac F10 send an unproto. The DigiRig **PTT LED** should light and the ID-4100 should transmit.
+4. From Linpac F10 send an unproto. The SignaLink **PTT LED** should light and the ID-4100 should transmit.
 5. A second receiver (HT) on the same frequency should hear the classic 1200-baud packet burst, not voice, not D-STAR.
 6. Adjust:
 
    | Symptom | Fix |
    |---|---|
-   | Radio does not key; DigiRig LED off | Wrong `PTT` device, not in `dialout`, or Lite with no VOX |
-   | DigiRig LED on, radio does not key | Cable not fully in mic jack; PTT Lock ON; wrong Icom cable |
-   | Keys but nobody decodes you | Lower `alsamixer` playback; MIC Gain 1–2; TXDELAY 40 |
-   | You never decode them | Raise radio volume; raise capture; squelch open; confirm FM not DV |
-   | Retries / corrupted text | Too much TX audio (ALC/clipping); lower playback |
-   | Constant transmit | Wrong PTT polarity or serial device; unplug USB and check `PTT ... RTS` |
+   | Radio does not key; SignaLink PTT LED off | Raise **TX** a little; raise **DELAY** a little; jumper module seated; cable fully in mic jack |
+   | LED on, radio does not key | PTT Lock ON; wrong Icom jumper module; mic plug not seated |
+   | Keys but nobody decodes you | Lower **TX**; MIC Gain 1–2; `TXDELAY 50` |
+   | You never decode them | Raise radio volume and SignaLink **RX**; squelch open; FM not DV |
+   | Retries / corrupted text | Too much TX audio; lower **TX** |
+   | Stays keyed after the packet | Turn **DELAY** down (shorter hang) |
+   | Keys on receive audio | TX/RX cables swapped or jumper module wrong |
 
 Direwolf prints `Audio level for PLUGHW:...` — for received packets, mid-scale (around 50) is healthy. Pegged 100 is too loud.
 
@@ -550,14 +547,9 @@ ADEVICE plughw:Device,0
 
 List names with `aplay -l`.
 
-### Permission denied on `/dev/ttyUSB0`
+### Installer wrote `PTT /dev/ttyUSB0 RTS`
 
-```bash
-groups   # must include dialout
-sudo usermod -aG dialout $USER
-```
-
-Then log out and back in.
+Comment that line out. A stock SignaLink has no RTS PTT device. Leaving it in can make Direwolf fail to start or behave oddly.
 
 ### Linpac monitor empty / crashes on listen
 
@@ -577,6 +569,14 @@ ls -l /usr/local/bin/listen
 
 Push `[MODE]` to **FM**. GPS TX Mode OFF. Do not use DR.
 
+### git clone of Direwolf failed
+
+```bash
+rm -rf ~/src/direwolf
+cd ~/src
+git clone --depth 1 https://github.com/wb2osz/direwolf.git
+```
+
 ---
 
 ## 14. What you should have installed (checklist)
@@ -589,9 +589,15 @@ On the Pi:
 - [ ] `libax25`, `ax25-apps`, `ax25-tools`
 - [ ] `socat` (backup KISS path)
 - [ ] Linpac (built from `develop`)
-- [ ] User in `dialout` and `audio`
-- [ ] `~/direwolf.conf` pointing at DigiRig audio + RTS PTT
+- [ ] User in `audio`
+- [ ] `~/direwolf.conf` pointing at SignaLink audio and **no** RTS `PTT` line
 - [ ] `/etc/ax25/axports` port named `radio`
+
+On the SignaLink:
+
+- [ ] Icom jumper module installed
+- [ ] TX / RX / DELAY set as in section 1
+- [ ] USB enumerated (`aplay -l`)
 
 On the ID-4100:
 
@@ -601,7 +607,7 @@ On the ID-4100:
 
 On the air:
 
-- [ ] Second packet station (another Linpac/Direwolf, or Windows UZ7HO Soundmodem + EasyTerm) on the same frequency
+- [ ] Second packet station on the same frequency
 - [ ] `:c OTHERCALL-1` then type without a colon
 
 ---
@@ -610,6 +616,6 @@ On the air:
 
 - Direwolf: https://github.com/wb2osz/direwolf
 - Linpac: https://sourceforge.net/projects/linpac/ and https://linpac.sourceforge.net/doc/manual.html
-- DigiRig Icom RJ-45 cable: https://digirig.net/product/icom-rj45-cable/
-- ID-4100 + DigiRig cabling (mic + speaker): Delaware County ARES Winlink/VARA write-up uses the same physical hookup
+- Tigertronics SignaLink USB: https://www.tigertronics.com/
+- DigiRig version of this procedure: [INSTALL.md](./INSTALL.md)
 - Raspberry Pi AX.25 + Direwolf overview: https://www.kevinhooke.com/2022/03/03/revisiting-packet-radio-on-a-raspberry-pi-with-direwolf-part-2-minimal-installation/
