@@ -294,11 +294,78 @@ need_build_direwolf() {
   return 0
 }
 
+fetch_direwolf_source() {
+  local dest="$SRC_DIR/direwolf"
+  local tar="$SRC_DIR/direwolf-src.tar.gz"
+  local attempt
+  run_user mkdir -p "$SRC_DIR"
+  export GIT_TERMINAL_PROMPT=0
+
+  if [[ -d "$dest/.git" ]]; then
+    log "Updating existing Direwolf git clone"
+    run_user git -C "$dest" pull --ff-only || true
+    return 0
+  fi
+
+  # A failed clone often leaves a half-written directory that blocks retry.
+  if [[ -e "$dest" ]]; then
+    log "Removing incomplete $dest from a previous failed clone"
+    run_user rm -rf "$dest"
+  fi
+
+  for attempt in 1 2 3; do
+    log "Direwolf git clone attempt $attempt/3: $DIREWOLF_GIT"
+    if run_user env GIT_TERMINAL_PROMPT=0 git clone --depth 1 "$DIREWOLF_GIT" "$dest"; then
+      return 0
+    fi
+    run_user rm -rf "$dest"
+    sleep $((attempt * 3))
+  done
+
+  log "Git clone failed. Downloading Direwolf source tarball instead."
+  run_user rm -f "$tar"
+  local tarball_ok=0
+  local url
+  for url in \
+    "https://github.com/wb2osz/direwolf/archive/refs/heads/master.tar.gz" \
+    "https://github.com/wb2osz/direwolf/archive/refs/heads/dev.tar.gz" \
+    "https://github.com/wb2osz/direwolf/archive/refs/heads/main.tar.gz"
+  do
+    log "Trying $url"
+    if run_user curl -fL --retry 3 --retry-delay 2 --connect-timeout 20 -o "$tar" "$url"; then
+      tarball_ok=1
+      break
+    fi
+  done
+  if [[ "$tarball_ok" -eq 1 ]]; then
+    run_user bash -c "
+      set -e
+      cd '$SRC_DIR'
+      tar xzf '$tar'
+      rm -rf direwolf
+      dir=\$(printf '%s\n' direwolf-* | head -n1)
+      mv \"\$dir\" direwolf
+    "
+    return 0
+  fi
+
+  log "Tarball download failed. Installing packaged direwolf from apt (older, but usable)."
+  run_root env DEBIAN_FRONTEND=noninteractive apt-get install -y direwolf
+  return 2
+}
+
 if [[ "$SKIP_DIREWOLF" -eq 0 ]] && need_build_direwolf; then
   log "==> Building Direwolf from source (this can take several minutes)"
-  as_user_bash "mkdir -p '$SRC_DIR' && cd '$SRC_DIR' && if [[ -d direwolf/.git ]]; then git -C direwolf pull --ff-only || true; else git clone --depth 1 '$DIREWOLF_GIT' direwolf; fi"
-  as_user_bash "cd '$SRC_DIR/direwolf' && rm -rf build && mkdir build && cd build && cmake .. && make -j\$(nproc)"
-  run_root make -C "$SRC_DIR/direwolf/build" install
+  dw_fetch=0
+  fetch_direwolf_source && dw_fetch=0 || dw_fetch=$?
+  if [[ "$dw_fetch" -eq 0 ]]; then
+    as_user_bash "cd '$SRC_DIR/direwolf' && rm -rf build && mkdir build && cd build && cmake .. && make -j\$(nproc)"
+    run_root make -C "$SRC_DIR/direwolf/build" install
+  elif [[ "$dw_fetch" -eq 2 ]]; then
+    log "Using apt direwolf; skip source build"
+  else
+    die "Could not get Direwolf source. On the Pi run: ping -c 2 github.com   and   curl -I https://github.com"
+  fi
   log "==> Direwolf installed: $(command -v direwolf || echo /usr/local/bin/direwolf)"
 elif [[ "$SKIP_DIREWOLF" -eq 1 ]]; then
   log "==> Skipping Direwolf build"

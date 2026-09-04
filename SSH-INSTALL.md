@@ -118,3 +118,43 @@ Then still log out and back in before `~/start-packet.sh`.
 | Installer refuses to run as root | SSH as `YOURUSER`, not `root` |
 | `direwolf` cannot open `/dev/ttyUSB0` | You skipped the log-out / log-back-in step |
 | `linpac` screen is garbled | Use `ssh -t` |
+| `git clone https://github.com/wb2osz/direwolf.git` failed | Incomplete clone or the Pi cannot reach GitHub. See below. |
+
+### Direwolf git clone failed
+
+A failed clone often leaves a broken `~/src/direwolf` folder. On the Pi, as your normal user:
+
+```bash
+ping -c 2 github.com
+mkdir -p ~/src
+cd ~/src
+rm -rf direwolf
+git clone --depth 1 https://github.com/wb2osz/direwolf.git
+```
+
+If clone still fails, skip git and use the source tarball:
+
+```bash
+cd ~/src
+rm -rf direwolf
+curl -fL --retry 3 -o direwolf.tar.gz https://github.com/wb2osz/direwolf/archive/refs/heads/master.tar.gz
+tar xzf direwolf.tar.gz
+mv direwolf-master direwolf
+cd direwolf
+mkdir build && cd build
+cmake ..
+make -j$(nproc)
+sudo make install
+```
+
+Then re-run the installer (it will skip Direwolf if `direwolf` is already on PATH):
+
+```bash
+./install-linpac-packet.sh --callsign YOURCALL
+```
+
+Last resort (older packaged build):
+
+```bash
+sudo apt install -y direwolf
+```
