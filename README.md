@@ -199,11 +199,12 @@ Icom mic inputs are sensitive. If the radio overdrives or PTT is flaky, **lower*
 
 ## 5. Install Direwolf from source
 
-The distro package is often older. Build current Direwolf:
+The distro package is often older. Build current Direwolf. Clone into `~/src` so a failed attempt is easy to delete:
 
 ```bash
-cd ~
-git clone https://github.com/wb2osz/direwolf.git
+mkdir -p ~/src
+cd ~/src
+git clone --depth 1 https://github.com/wb2osz/direwolf.git
 cd direwolf
 mkdir build && cd build
 cmake ..
@@ -213,6 +214,48 @@ make install-conf
 ```
 
 `make install-conf` copies `direwolf.conf` into your home directory (`~/direwolf.conf`).
+
+### If `git clone` fails
+
+A failed clone often leaves a half-written `direwolf` folder. Remove it, then retry. `cd ~` is your home directory (`/home/YOURUSER`).
+
+```bash
+ping -c 2 github.com
+mkdir -p ~/src
+cd ~/src
+rm -rf direwolf
+git clone --depth 1 https://github.com/wb2osz/direwolf.git
+```
+
+If that folder was created in home instead of `~/src`:
+
+```bash
+cd ~
+rm -rf direwolf
+```
+
+If clone still fails, skip git and download the source tarball:
+
+```bash
+cd ~/src
+rm -rf direwolf
+curl -fL --retry 3 -o direwolf.tar.gz https://github.com/wb2osz/direwolf/archive/refs/heads/master.tar.gz
+tar xzf direwolf.tar.gz
+mv direwolf-master direwolf
+cd direwolf
+mkdir build && cd build
+cmake ..
+make -j$(nproc)
+sudo make install
+```
+
+Last resort (older packaged build):
+
+```bash
+sudo apt install -y direwolf
+```
+
+If `ping github.com` fails, the Pi cannot reach GitHub (DNS or firewall). Fix networking before cloning again.
 
 ---
 
@@ -549,6 +592,16 @@ ADEVICE plughw:Device,0
 ```
 
 List names with `aplay -l`.
+
+### git clone of Direwolf failed
+
+Remove the broken folder, then retry or use the tarball. Full steps are in [section 5](#5-install-direwolf-from-source).
+
+```bash
+cd ~/src
+rm -rf direwolf
+git clone --depth 1 https://github.com/wb2osz/direwolf.git
+```
 
 ### Permission denied on `/dev/ttyUSB0`
 
