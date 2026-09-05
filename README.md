@@ -1,6 +1,6 @@
-# Linpac + DigiRig + Icom ID-4100 on a Raspberry Pi
+# Linpac + DigiRig + Kenwood TM-D700 on a Raspberry Pi
 
-Keyboard-to-keyboard packet radio (AX.25 connected chat) using a DigiRig as the soundcard TNC and an Icom ID-4100 as the analog FM radio.
+Keyboard-to-keyboard packet radio (AX.25 connected chat) using a DigiRig as the soundcard TNC and a Kenwood **TM-D700** (D700A/E) as the analog FM radio.
 
 This repository is **public**. Anyone can open the GitHub link below without logging in.
 
@@ -8,7 +8,7 @@ This repository is **public**. Anyone can open the GitHub link below without log
 
 **SignaLink USB instead of DigiRig:** [INSTALL-SIGNALINK.md](./INSTALL-SIGNALINK.md)
 
-**Word document:** [Linpac_DigiRig_ID-4100_Raspberry_Pi_Procedure.docx](./Linpac_DigiRig_ID-4100_Raspberry_Pi_Procedure.docx)
+**Word document (older Icom ID-4100 write-up):** [Linpac_DigiRig_ID-4100_Raspberry_Pi_Procedure.docx](./Linpac_DigiRig_ID-4100_Raspberry_Pi_Procedure.docx)
 
 You need a valid amateur radio license and must identify as required in your country.
 
@@ -51,12 +51,14 @@ Keyboard  →  Linpac  →  Linux AX.25  →  Direwolf (software TNC)
                                               ↓
                                     DigiRig USB sound + RTS PTT
                                               ↓
-                              Icom ID-4100 analog FM (not D-STAR)
+                              Kenwood TM-D700 analog FM (built-in TNC OFF)
                                               ↓
                                     RF to the other station
 ```
 
 Linpac is only a terminal. It does not talk to the DigiRig by itself. Direwolf turns the DigiRig into a 1200-baud AFSK modem. Linux AX.25 is the packet protocol stack Linpac uses.
+
+The TM-D700 also has a **built-in TNC** and a **DB-9 COM** port on the control head. This procedure does **not** use those. Leave the built-in TNC **off** and plug the DigiRig into the **6-pin DATA** jack on the radio body (external TNC / soundcard audio).
 
 | Software | Role |
 |---|---|
@@ -67,7 +69,7 @@ Linpac is only a terminal. It does not talk to the DigiRig by itself. Direwolf t
 | Linpac | Keyboard-to-keyboard packet terminal |
 | `socat` (optional) | More reliable KISS pty than Direwolf `-p` |
 
-Do **not** use D-STAR (DV), VARA, or Winlink for this procedure. Those are different modes. Linpac is analog 1200-baud AX.25 packet on FM.
+Do **not** use the D700’s TNC PKT / TNC APRS modes, VARA, or Winlink for this procedure. Linpac here is analog 1200-baud AX.25 packet on FM via Direwolf.
 
 ---
 
@@ -75,42 +77,42 @@ Do **not** use D-STAR (DV), VARA, or Winlink for this procedure. Those are diffe
 
 - Raspberry Pi 3B+, 4, or 5 with power supply, HDMI or SSH, and keyboard
 - DigiRig **Mobile** (recommended: Silicon Labs CP210x serial port for RTS PTT)
-- DigiRig **ICOM RJ-45 cable** (front mic + rear speaker)
+- DigiRig **MiniDin6 audio/PTT cable** (Kenwood 6-pin DATA jack; DigiRig lists this for TM-D700)
 - USB-C cable: DigiRig to Pi
-- Icom **ID-4100A / ID-4100E**
+- Kenwood **TM-D700A / TM-D700E** (TH-D700 handheld uses different connectors)
 - Antenna and radio power
 
 If you have a **DigiRig Lite** (no COM port), PTT is VOX on the right audio channel. See the Lite note at the end of section 6.
 
-### Cable connections (ID-4100 + DigiRig ICOM RJ-45)
+Fallback if you do not have a MiniDin6 cable: DigiRig **Kenwood RJ-45** mic cable plus a speaker pigtail. DATA jack is preferred (fixed RX level, mic stays unused).
 
-1. Unplug the hand mic from the front of the ID-4100.
-2. Plug the cable **RJ-45** into the front **mic jack**.
-3. Plug the cable **3.5 mm TRS** into the rear **speaker** jack (the larger jack). Leave the small 2.5 mm **DATA** jack empty. That DATA jack is for D-STAR cloning/GPS, not analog packet with this cable.
-4. Plug the 4-pin (TRRS) end into the DigiRig socket labeled **AUDIO**. Nothing goes into the DigiRig serial socket when using this Icom cable.
-5. USB-C from DigiRig to a Pi USB port.
-6. Power on the radio, then the Pi.
+### Cable connections (TM-D700 + DigiRig MiniDin6)
+
+1. Do **not** use the **DB-9 COM** connector on the control head. That port is for the built-in TNC / GPS / PC, not the DigiRig.
+2. Plug the DigiRig MiniDin6 into the **DATA** jack on the **main unit** (radio body), Kenwood PG-5A style 6-pin mini-DIN.
+3. Plug the 4-pin (TRRS) end into the DigiRig socket labeled **AUDIO**. Nothing goes into the DigiRig serial socket for this cable.
+4. USB-C from DigiRig to a Pi USB port.
+5. Power on the radio, then the Pi.
 
 ---
 
-## 2. ID-4100 radio settings
+## 2. TM-D700 radio settings
 
-Packet via DigiRig is **analog FM**, not D-STAR.
+Packet via DigiRig is **analog FM** with an **external** soundcard TNC. The radio’s own TNC must be off so it does not fight Direwolf.
 
 | Setting | Value | How |
 |---|---|---|
-| Operating mode | **FM** (not DV, not FM-N) | Push `[MODE]` until FM |
-| D-STAR / DR | Off | Do not use the DR screen |
-| Duplex | OFF (simplex) | Quick menu / DUP |
-| Tone / TSQL / DTCS | OFF unless your local packet channel uses CTCSS | `[QUICK]` → TONE |
-| GPS TX Mode | **OFF** | `[MENU]` → GPS → GPS TX Mode → OFF |
-| PTT Lock | **OFF** | `[MENU]` → Function → PTT Lock |
-| MIC Gain | **2** (default; later 1–3 if overdriven) | `[MENU]` → Function → MIC Gain |
-| PRIO / priority watch | **OFF** | `[QUICK]` → PRIO Watch OFF |
+| Built-in TNC | **OFF** (no `TNC APRS`, no `TNC PKT` on the display) | Hold `[F]` until TNC appears, press `[TNC]`. Repeat until those labels are **blank** |
+| External data speed | **1200 bps** | Menu **1–9–6** (DATA SPEED). This applies to an external TNC / DATA jack |
+| Operating mode | **FM** (not narrow on the data band, especially TM-D700E) | Band mode FM |
+| Duplex / offset | OFF (simplex) | No +/- shift |
+| Tone / CTCSS | OFF unless your local packet channel uses CTCSS | |
+| Cross-band repeat | **OFF** | Menu **1–7–6** |
+| Dual watch / both bands busy | Off for packet | Operate on **one** band |
 | TX power | **LOW** at first | Front panel power |
-| Volume | About **50%** (10–12 o’clock) | `[VOL]` — this is the audio DigiRig hears |
-| Squelch | Fully open (counterclockwise) | Direwolf has its own DCD; closed squelch can hide packet audio |
-| Frequency | Local 2 m packet simplex | `[V/M]` to VFO, then set frequency |
+| Volume | About **50%** if you use a speaker cable; DATA-jack RX is a fixed level | `[VOL]` |
+| Squelch | Fully open (counterclockwise) | Direwolf has its own DCD |
+| Frequency | Local 2 m packet simplex on the **TX band** | For an external TNC, Menu 1–6–1 (DATA BAND) does not apply; use the band you are transmitting on |
 
 Typical US 2 m packet simplex frequencies (confirm your local band plan): **145.010**, 145.030, 145.050, 145.070, 145.090 MHz. Many Winlink RMS stations use 145.670 — that is a different service; use a quiet simplex channel for keyboard chat.
 
@@ -193,7 +195,7 @@ alsamixer -c 2
 - Capture (Mic): around **70%**, not muted
 - Disable Auto-Gain if it appears
 
-Icom mic inputs are sensitive. If the radio overdrives or PTT is flaky, **lower** playback, not raise it.
+If the radio overdrives or PTT is flaky, **lower** playback, not raise it. DATA-jack TX audio is sensitive; start low.
 
 ---
 
@@ -315,7 +317,7 @@ sudo nano /etc/ax25/axports
 
 ```text
 # name  callsign     speed  paclen  window  description
-radio   YOURCALL-1   19200  255     2       2m 1200 packet ID-4100
+radio   YOURCALL-1   19200  255     2       2m 1200 packet TM-D700
 ```
 
 - `radio` is the **port name** Linpac will use
@@ -537,21 +539,22 @@ kill "$(cat /tmp/direwolf.pid)" 2>/dev/null || true
 
 ## 12. Audio and PTT checkout
 
-1. Open squelch on the ID-4100. Direwolf’s underrun/level line should move.
+1. Open squelch on the TM-D700. Direwolf’s underrun/level line should move (DATA-jack RX is a fixed level; if it stays at zero, check the MiniDin6 seating and Menu 1–9–6 = 1200).
 2. Brief decode test on 144.390 APRS (US) or a known local packet channel. You should see decoded frames.
 3. Return to your simplex chat frequency.
-4. From Linpac F10 send an unproto. The DigiRig **PTT LED** should light and the ID-4100 should transmit.
-5. A second receiver (HT) on the same frequency should hear the classic 1200-baud packet burst, not voice, not D-STAR.
+4. From Linpac F10 send an unproto. The DigiRig **PTT LED** should light and the TM-D700 should transmit.
+5. A second receiver (HT) on the same frequency should hear the classic 1200-baud packet burst, not voice.
 6. Adjust:
 
    | Symptom | Fix |
    |---|---|
    | Radio does not key; DigiRig LED off | Wrong `PTT` device, not in `dialout`, or Lite with no VOX |
-   | DigiRig LED on, radio does not key | Cable not fully in mic jack; PTT Lock ON; wrong Icom cable |
-   | Keys but nobody decodes you | Lower `alsamixer` playback; MIC Gain 1–2; TXDELAY 40 |
-   | You never decode them | Raise radio volume; raise capture; squelch open; confirm FM not DV |
+   | DigiRig LED on, radio does not key | MiniDin6 not fully in **DATA** jack (not the DB-9 COM); built-in TNC still on |
+   | Keys but nobody decodes you | Lower `alsamixer` playback; Menu 1–9–6 = 1200; TXDELAY 40 |
+   | You never decode them | Confirm FM; squelch open; TNC OFF; 1200 bps DATA SPEED |
    | Retries / corrupted text | Too much TX audio (ALC/clipping); lower playback |
    | Constant transmit | Wrong PTT polarity or serial device; unplug USB and check `PTT ... RTS` |
+   | Radio beacons APRS by itself | Built-in TNC is still in TNC APRS — turn TNC **off** |
 
 Direwolf prints `Audio level for PLUGHW:...` — for received packets, mid-scale (around 50) is healthy. Pegged 100 is too loud.
 
@@ -626,9 +629,11 @@ ls -l /usr/local/bin/listen
 - `axports` callsign matches Direwolf `MYCALL`
 - Linpac port name is `radio`
 
-### ID-4100 stays in D-STAR
+### Built-in TNC still on (`TNC PKT` or `TNC APRS` on the display)
 
-Push `[MODE]` to **FM**. GPS TX Mode OFF. Do not use DR.
+Hold `[F]` then `[TNC]` until those labels are **blank**. Direwolf and the radio TNC cannot share the same audio path.
+
+Do not plug the DigiRig into the control-head **DB-9 COM** port.
 
 ---
 
@@ -646,11 +651,12 @@ On the Pi:
 - [ ] `~/direwolf.conf` pointing at DigiRig audio + RTS PTT
 - [ ] `/etc/ax25/axports` port named `radio`
 
-On the ID-4100:
+On the TM-D700:
 
-- [ ] FM simplex, GPS TX off, PTT Lock off
-- [ ] Mic + speaker cable, DATA jack unused
-- [ ] Volume ~50%, squelch open, power LOW
+- [ ] Built-in TNC **off** (no TNC PKT / TNC APRS)
+- [ ] Menu 1–9–6 DATA SPEED **1200**
+- [ ] MiniDin6 in the **DATA** jack on the radio body (not DB-9 COM)
+- [ ] FM simplex, cross-band off, power LOW, squelch open
 
 On the air:
 
@@ -663,6 +669,6 @@ On the air:
 
 - Direwolf: https://github.com/wb2osz/direwolf
 - Linpac: https://sourceforge.net/projects/linpac/ and https://linpac.sourceforge.net/doc/manual.html
-- DigiRig Icom RJ-45 cable: https://digirig.net/product/icom-rj45-cable/
-- ID-4100 + DigiRig cabling (mic + speaker): Delaware County ARES Winlink/VARA write-up uses the same physical hookup
+- DigiRig MiniDin6 audio/PTT cable: https://digirig.net/product/9600-baud-audio-cable/
+- Kenwood TM-D700 instruction manual (external TNC / DATA jack, Menu 1–9–6)
 - Raspberry Pi AX.25 + Direwolf overview: https://www.kevinhooke.com/2022/03/03/revisiting-packet-radio-on-a-raspberry-pi-with-direwolf-part-2-minimal-installation/

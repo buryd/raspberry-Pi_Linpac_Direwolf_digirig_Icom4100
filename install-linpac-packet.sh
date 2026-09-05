@@ -194,7 +194,7 @@ AXPORTS=/etc/ax25/axports
 log "==> Writing $AXPORTS"
 AXPORTS_BODY=$(cat <<EOF
 # name  callsign     speed  paclen  window  description
-$AX25_PORT   $MYCALL   19200  255     2       2m 1200 packet ID-4100
+$AX25_PORT   $MYCALL   19200  255     2       2m 1200 packet TM-D700
 EOF
 )
 TMP_AX="$(mktemp)"
@@ -527,7 +527,7 @@ log "  1. Plug in DigiRig. Confirm devices:"
 log "       aplay -l"
 log "       ls -l /dev/serial/by-id"
 log "     Edit $DIREWOLF_CONF if ADEVICE or PTT is wrong."
-log "  2. Set analog FM simplex on the ID-4100 (not D-STAR)."
+log "  2. Set analog FM simplex on the TM-D700 (built-in TNC OFF, Menu 1-9-6 = 1200)."
 log "  3. Start the TNC/AX.25 stack:"
 log "       $START_SCRIPT"
 log "  4. In another SSH session:"

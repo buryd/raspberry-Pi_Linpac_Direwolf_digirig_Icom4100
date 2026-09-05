@@ -1,6 +1,6 @@
-# Linpac + SignaLink USB + Icom ID-4100 on a Raspberry Pi
+# Linpac + SignaLink USB + Kenwood TM-D700 on a Raspberry Pi
 
-Keyboard-to-keyboard packet radio (AX.25 connected chat) using a **Tigertronics SignaLink USB** as the soundcard interface and an Icom ID-4100 as the analog FM radio.
+Keyboard-to-keyboard packet radio (AX.25 connected chat) using a **Tigertronics SignaLink USB** as the soundcard interface and a Kenwood **TM-D700** (D700A/E) as the analog FM radio.
 
 This is the SignaLink variant of the DigiRig procedure. Software (Direwolf, AX.25, Linpac) is the same. PTT is **VOX on the SignaLink**, not serial RTS.
 
@@ -15,12 +15,14 @@ Keyboard  →  Linpac  →  Linux AX.25  →  Direwolf (software TNC)
                                               ↓
                          SignaLink USB (sound card + VOX PTT)
                                               ↓
-                              Icom ID-4100 analog FM (not D-STAR)
+                              Kenwood TM-D700 analog FM (built-in TNC OFF)
                                               ↓
                                     RF to the other station
 ```
 
 Linpac is only a terminal. It does not talk to the SignaLink by itself. Direwolf turns the SignaLink into a 1200-baud AFSK modem. The SignaLink keys the radio with its internal VOX circuit (DELAY knob). Linux AX.25 is the packet protocol stack Linpac uses.
+
+The TM-D700 also has a **built-in TNC** and a **DB-9 COM** port on the control head. This procedure does **not** use those. Leave the built-in TNC **off** and plug the SignaLink into the **6-pin DATA** jack on the radio body.
 
 | Software | Role |
 |---|---|
@@ -31,7 +33,7 @@ Linpac is only a terminal. It does not talk to the SignaLink by itself. Direwolf
 | Linpac | Keyboard-to-keyboard packet terminal |
 | `socat` (optional) | More reliable KISS pty than Direwolf `-p` |
 
-Do **not** use D-STAR (DV), VARA, or Winlink for this procedure. Those are different modes. Linpac is analog 1200-baud AX.25 packet on FM.
+Do **not** use the D700’s TNC PKT / TNC APRS modes, VARA, or Winlink for this procedure. Linpac here is analog 1200-baud AX.25 packet on FM via Direwolf.
 
 **SignaLink vs DigiRig**
 
@@ -48,52 +50,49 @@ Do **not** use D-STAR (DV), VARA, or Winlink for this procedure. Those are diffe
 
 - Raspberry Pi 3B+, 4, or 5 with power supply, HDMI or SSH, and keyboard
 - **Tigertronics SignaLink USB**
-- SignaLink **Icom RJ-45 radio cable** (front mic + speaker pigtail, as supplied for Icom mobiles)
+- SignaLink **6-pin mini-DIN radio cable** (p/n **SLCAB6PM**) for the Kenwood DATA jack
 - USB-A to USB-B cable (SignaLink to Pi)
-- Icom **ID-4100A / ID-4100E**
+- Kenwood **TM-D700A / TM-D700E**
 - Antenna and radio power
-- Jumper module that came with the Icom SignaLink cable (install it in the SignaLink per the Tigertronics sheet for that cable)
+- Jumper module for the **6-pin mini-DIN** cable (install it in the SignaLink per the Tigertronics sheet for SLCAB6PM)
 
-The ID-4100 does **not** have a standard 6-pin mini-DIN packet DATA jack. Use mic + speaker, not the small 2.5 mm rear DATA jack (that jack is for D-STAR cloning/GPS).
+Do **not** use the control-head **DB-9 COM** port. That is for the built-in TNC / PC, not the SignaLink.
 
-### Cable connections (ID-4100 + SignaLink USB)
+### Cable connections (TM-D700 + SignaLink USB)
 
-1. Unplug the hand mic from the front of the ID-4100.
-2. Plug the SignaLink cable **RJ-45** into the front **mic jack**.
-3. Plug the cable’s **speaker** pigtail into the rear **speaker** jack (the larger jack). Leave the small 2.5 mm **DATA** jack empty.
-4. Plug the other RJ-45 into the **radio** jack on the SignaLink.
-5. Confirm the matching **jumper module** is seated inside the SignaLink (Icom RJ-45 pinout).
-6. USB from SignaLink to a Pi USB port.
-7. Power on the radio, then the Pi.
+1. Plug the SignaLink **SLCAB6PM** 6-pin mini-DIN into the **DATA** jack on the **main unit** (radio body).
+2. Plug the RJ-45 end into the **radio** jack on the SignaLink.
+3. Confirm the matching **jumper module** is seated inside the SignaLink (6-pin mini-DIN / Kenwood DATA pinout).
+4. USB from SignaLink to a Pi USB port.
+5. Power on the radio, then the Pi.
 
 ### SignaLink knobs (starting points)
 
 | Knob | Start here | Notes |
 |---|---|---|
-| **TX** | 9–10 o’clock | Icom mic inputs are sensitive. Too high distorts packet. |
-| **RX** | 10–12 o’clock | Aim for Direwolf decode audio around 50, not 100. |
+| **TX** | 9–10 o’clock | DATA-jack TX is sensitive. Too high distorts packet. |
+| **RX** | 10–12 o’clock | DATA-jack RX is a fixed radio level; aim for Direwolf decode around 50, not 100. |
 | **DELAY** | 8–9 o’clock (short) | Packet needs a short hang time. Long DELAY holds PTT after each burst. |
 
 ---
 
-## 2. ID-4100 radio settings
+## 2. TM-D700 radio settings
 
-Packet via SignaLink is **analog FM**, not D-STAR.
+Packet via SignaLink is **analog FM** with an **external** soundcard TNC. The radio’s own TNC must be off so it does not fight Direwolf.
 
 | Setting | Value | How |
 |---|---|---|
-| Operating mode | **FM** (not DV, not FM-N) | Push `[MODE]` until FM |
-| D-STAR / DR | Off | Do not use the DR screen |
-| Duplex | OFF (simplex) | Quick menu / DUP |
-| Tone / TSQL / DTCS | OFF unless your local packet channel uses CTCSS | `[QUICK]` → TONE |
-| GPS TX Mode | **OFF** | `[MENU]` → GPS → GPS TX Mode → OFF |
-| PTT Lock | **OFF** | `[MENU]` → Function → PTT Lock |
-| MIC Gain | **2** (default; later 1–3 if overdriven) | `[MENU]` → Function → MIC Gain |
-| PRIO / priority watch | **OFF** | `[QUICK]` → PRIO Watch OFF |
+| Built-in TNC | **OFF** (no `TNC APRS`, no `TNC PKT` on the display) | Hold `[F]` until TNC appears, press `[TNC]`. Repeat until those labels are **blank** |
+| External data speed | **1200 bps** | Menu **1–9–6** (DATA SPEED) |
+| Operating mode | **FM** (not narrow on the data band, especially TM-D700E) | Band mode FM |
+| Duplex / offset | OFF (simplex) | No +/- shift |
+| Tone / CTCSS | OFF unless your local packet channel uses CTCSS | |
+| Cross-band repeat | **OFF** | Menu **1–7–6** |
+| Dual watch / both bands busy | Off for packet | Operate on **one** band |
 | TX power | **LOW** at first | Front panel power |
-| Volume | About **50%** (10–12 o’clock) | `[VOL]` — this is the audio the SignaLink RX knob hears |
-| Squelch | Fully open (counterclockwise) | Direwolf has its own DCD; closed squelch can hide packet audio |
-| Frequency | Local 2 m packet simplex | `[V/M]` to VFO, then set frequency |
+| Volume | DATA-jack RX is a fixed level; speaker volume is for monitoring | `[VOL]` |
+| Squelch | Fully open (counterclockwise) | Direwolf has its own DCD |
+| Frequency | Local 2 m packet simplex on the **TX band** | For an external TNC, Menu 1–6–1 does not apply |
 
 Typical US 2 m packet simplex frequencies (confirm your local band plan): **145.010**, 145.030, 145.050, 145.070, 145.090 MHz. Many Winlink RMS stations use 145.670 — that is a different service; use a quiet simplex channel for keyboard chat.
 
@@ -294,7 +293,7 @@ direwolf -t 0
 
 `-t 0` turns off color (cleaner over SSH). You should see the sound card open and, when the radio hears packet or noise, an audio level meter. Tune a busy APRS channel (US: 144.390 FM) briefly to confirm **decode**. Then go back to your packet simplex frequency.
 
-PTT test: watch the SignaLink **PTT LED** and the ID-4100 transmit indicator when a packet goes out. If the LED never lights, raise **TX** slightly and/or **DELAY** slightly.
+PTT test: watch the SignaLink **PTT LED** and the TM-D700 transmit indicator when a packet goes out. If the LED never lights, raise **TX** slightly and/or **DELAY** slightly.
 
 ---
 
@@ -308,7 +307,7 @@ sudo nano /etc/ax25/axports
 
 ```text
 # name  callsign     speed  paclen  window  description
-radio   YOURCALL-1   19200  255     2       2m 1200 packet ID-4100
+radio   YOURCALL-1   19200  255     2       2m 1200 packet TM-D700
 ```
 
 - `radio` is the **port name** Linpac will use
@@ -531,22 +530,23 @@ kill "$(cat /tmp/direwolf.pid)" 2>/dev/null || true
 
 ## 12. Audio and PTT checkout
 
-1. Open squelch on the ID-4100. Direwolf’s level line should move. Raise SignaLink **RX** or radio volume if it stays at zero.
+1. Open squelch on the TM-D700. Direwolf’s level line should move. Raise SignaLink **RX** if it stays at zero (DATA-jack RX is a fixed radio level).
 2. Brief decode test on 144.390 APRS (US) or a known local packet channel. You should see decoded frames.
 3. Return to your simplex chat frequency.
-4. From Linpac F10 send an unproto. The SignaLink **PTT LED** should light and the ID-4100 should transmit.
-5. A second receiver (HT) on the same frequency should hear the classic 1200-baud packet burst, not voice, not D-STAR.
+4. From Linpac F10 send an unproto. The SignaLink **PTT LED** should light and the TM-D700 should transmit.
+5. A second receiver (HT) on the same frequency should hear the classic 1200-baud packet burst, not voice.
 6. Adjust:
 
    | Symptom | Fix |
    |---|---|
-   | Radio does not key; SignaLink PTT LED off | Raise **TX** a little; raise **DELAY** a little; jumper module seated; cable fully in mic jack |
-   | LED on, radio does not key | PTT Lock ON; wrong Icom jumper module; mic plug not seated |
-   | Keys but nobody decodes you | Lower **TX**; MIC Gain 1–2; `TXDELAY 50` |
-   | You never decode them | Raise radio volume and SignaLink **RX**; squelch open; FM not DV |
+   | Radio does not key; SignaLink PTT LED off | Raise **TX** a little; raise **DELAY** a little; jumper module seated; MiniDin6 fully in **DATA** jack |
+   | LED on, radio does not key | Built-in TNC still on; plugged into DB-9 COM instead of DATA; wrong jumper module |
+   | Keys but nobody decodes you | Lower **TX**; Menu 1–9–6 = 1200; `TXDELAY 50` |
+   | You never decode them | SignaLink **RX**; squelch open; TNC OFF; FM |
    | Retries / corrupted text | Too much TX audio; lower **TX** |
    | Stays keyed after the packet | Turn **DELAY** down (shorter hang) |
-   | Keys on receive audio | TX/RX cables swapped or jumper module wrong |
+   | Keys on receive audio | TX/RX jumper module wrong |
+   | Radio beacons APRS by itself | Built-in TNC still in TNC APRS — turn TNC **off** |
 
 Direwolf prints `Audio level for PLUGHW:...` — for received packets, mid-scale (around 50) is healthy. Pegged 100 is too loud.
 
@@ -606,9 +606,11 @@ ls -l /usr/local/bin/listen
 - `axports` callsign matches Direwolf `MYCALL`
 - Linpac port name is `radio`
 
-### ID-4100 stays in D-STAR
+### Built-in TNC still on (`TNC PKT` or `TNC APRS` on the display)
 
-Push `[MODE]` to **FM**. GPS TX Mode OFF. Do not use DR.
+Hold `[F]` then `[TNC]` until those labels are **blank**. Direwolf and the radio TNC cannot share the same audio path.
+
+Do not plug the SignaLink into the control-head **DB-9 COM** port.
 
 ### git clone of Direwolf failed
 
@@ -638,15 +640,16 @@ On the Pi:
 
 On the SignaLink:
 
-- [ ] Icom jumper module installed
+- [ ] 6-pin mini-DIN jumper module installed
 - [ ] TX / RX / DELAY set as in section 1
 - [ ] USB enumerated (`aplay -l`)
 
-On the ID-4100:
+On the TM-D700:
 
-- [ ] FM simplex, GPS TX off, PTT Lock off
-- [ ] Mic + speaker cable, DATA jack unused
-- [ ] Volume ~50%, squelch open, power LOW
+- [ ] Built-in TNC **off** (no TNC PKT / TNC APRS)
+- [ ] Menu 1–9–6 DATA SPEED **1200**
+- [ ] SLCAB6PM in the **DATA** jack on the radio body (not DB-9 COM)
+- [ ] FM simplex, cross-band off, power LOW
 
 On the air:
 
@@ -659,6 +662,6 @@ On the air:
 
 - Direwolf: https://github.com/wb2osz/direwolf
 - Linpac: https://sourceforge.net/projects/linpac/ and https://linpac.sourceforge.net/doc/manual.html
-- Tigertronics SignaLink USB: https://www.tigertronics.com/
+- Tigertronics SignaLink USB and SLCAB6PM 6-pin mini-DIN cable: https://www.tigertronics.com/
 - DigiRig version of this procedure: [INSTALL.md](./INSTALL.md)
 - Raspberry Pi AX.25 + Direwolf overview: https://www.kevinhooke.com/2022/03/03/revisiting-packet-radio-on-a-raspberry-pi-with-direwolf-part-2-minimal-installation/
