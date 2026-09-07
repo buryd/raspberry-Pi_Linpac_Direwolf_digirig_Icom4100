@@ -6,7 +6,7 @@ This repository is **public**. Anyone can open the GitHub link below without log
 
 **Run the installer over SSH as a normal (non-root) user:** [SSH-INSTALL.md](./SSH-INSTALL.md)
 
-**SignaLink USB instead of DigiRig:** [INSTALL-SIGNALINK.md](./INSTALL-SIGNALINK.md)
+**SignaLink USB + TM-D700 installer (Pi 3B+):** [install-linpac-signalink-d700.sh](./install-linpac-signalink-d700.sh) — [INSTALL-SIGNALINK.md](./INSTALL-SIGNALINK.md)
 
 **Word document (older Icom ID-4100 write-up):** [Linpac_DigiRig_ID-4100_Raspberry_Pi_Procedure.docx](./Linpac_DigiRig_ID-4100_Raspberry_Pi_Procedure.docx)
 

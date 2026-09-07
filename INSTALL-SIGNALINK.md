@@ -100,21 +100,19 @@ Both stations must be on the **same frequency**, **FM**, **simplex**, and the sa
 
 ---
 
-## 3. Raspberry Pi OS
+## 3. Raspberry Pi OS (Pi 3B+)
 
-The installer script still works for SignaLink (it installs Direwolf and Linpac). After it finishes you **must** edit `~/direwolf.conf` and remove the DigiRig RTS PTT line (see section 6).
+Use Raspberry Pi OS 32-bit (`armhf`) or 64-bit (`arm64`). Both kernel and userland must match. On the Pi 3B+ (1 GB RAM) this installer compiles with `-j2`.
 
-From the Pi, as a normal user (not root):
+Dedicated installer (SignaLink VOX, no RTS PTT). From the Pi as a normal user (not root):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/buryd/raspberry-Pi_Linpac_Direwolf_digirig_Icom4100/main/install-linpac-packet.sh -o install-linpac-packet.sh
-chmod +x install-linpac-packet.sh
-./install-linpac-packet.sh --callsign YOURCALL
+curl -fsSL https://raw.githubusercontent.com/buryd/raspberry-Pi_Linpac_Direwolf_digirig_Icom4100/main/install-linpac-signalink-d700.sh -o install-linpac-signalink-d700.sh
+chmod +x install-linpac-signalink-d700.sh
+./install-linpac-signalink-d700.sh --callsign YOURCALL
 ```
 
-Non-root SSH steps: [SSH-INSTALL.md](./SSH-INSTALL.md).
-
-Use current **Raspberry Pi OS** (Bookworm or later). 64-bit is fine if kernel and userland are both 64-bit. Do not mix a 64-bit kernel with 32-bit userland.
+Non-root SSH steps: [SSH-INSTALL.md](./SSH-INSTALL.md) (use `install-linpac-signalink-d700.sh` instead of `install-linpac-packet.sh`).
 
 If you prefer to install by hand:
 
